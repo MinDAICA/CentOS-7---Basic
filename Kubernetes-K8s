@@ -1,7 +1,7 @@
 Quy trình cài đặt Kubernetes bằng kubeadm trên CentOS 7, áp dụng cho:
-  Master node: 172.16.10.20 – master1020
-  Worker node 1: 172.16.10.21 – worker1021
-  Worker node 2: 172.16.10.22 – worker1022
+  Master node: 192.168.1.160 – master1160
+  Worker node 1: 192.168.1.161 – worker1161
+  Worker node 2: 192.168.1.162 – worker1162
 Mình cài mỗi VM là một CentOS 7: có tên hostname và IP như trên 
   Trên Master Node1:
   Bước 1: Chuẩn bị hệ thống (trên tất cả các node) bash
