@@ -34,3 +34,53 @@ Mình cài mỗi VM là một CentOS 7: có tên hostname và IP như trên
     192.168.1.161 worker1161
     192.168.1.162 worker1162
     EOF
+
+
+
+
+
+
+<----#### Kiểm tra sau khi chạy script chuẩn bị hệ thống ###---->
+🔹 1. Kiểm tra hostname
+    bash
+    hostname
+    Kết quả phải là:
+    master1160 trên máy Master
+    worker1161 hoặc worker1162 trên máy Worker
+
+🔹 2. Kiểm tra swap đã tắt
+    bash
+    free -m | grep -i swap
+    Kết quả phải là 0 ở cột “total”.
+
+🔹 3. Kiểm tra SELinux đã tắt
+    bash
+    getenforce
+    Kết quả phải là Disabled.
+
+🔹 4. Kiểm tra firewall đã tắt
+    bash
+    systemctl status firewalld
+    Kết quả phải là inactive (dead).
+
+🔹 5. Kiểm tra chronyd đang chạy
+    bash
+    systemctl status chronyd
+    Kết quả phải là active (running).
+
+🔹 6. Kiểm tra cấu hình mạng bridge
+    bash
+    sysctl net.bridge.bridge-nf-call-iptables
+    sysctl net.bridge.bridge-nf-call-ip6tables
+    Cả hai phải trả về = 1.
+
+🔹 7. Kiểm tra file /etc/hosts
+    bash
+    cat /etc/hosts
+    Phải có dòng:
+    
+    Code
+    192.168.1.160 master1160
+    192.168.1.161 worker1161
+    192.168.1.162 worker1162
+    
