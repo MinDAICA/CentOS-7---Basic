@@ -1,0 +1,22 @@
+Cảm ơn Dong đã chia sẻ log chi tiết — mình thấy rõ nguyên nhân rồi: hệ thống của bạn vẫn đang kích hoạt repo Kubernetes cũ tại packages.cloud.google.com, và nó đang gây lỗi khi bạn cài wget vì yum cố gắng truy cập tất cả repo đang bật, kể cả repo lỗi.
+
+✅ Cách khắc phục ngay
+Bạn chỉ cần tạm thời vô hiệu hóa repo Kubernetes cũ để yum không bị lỗi khi cài wget.
+
+🔧 Bước 1: Vô hiệu hóa repo lỗi
+bash
+yum --disablerepo=kubernetes install -y wget
+Lệnh này sẽ cài wget mà không dùng repo Kubernetes cũ.
+
+🧹 Bước 2: (Tuỳ chọn) Xoá repo Kubernetes cũ vĩnh viễn
+bash
+rm -f /etc/yum.repos.d/kubernetes.repo
+Vì repo này đã bị Google đóng vĩnh viễn, bạn nên xoá để tránh lỗi về sau.
+
+🔁 Bước 3: Tiếp tục tải file .rpm
+Sau khi cài xong wget, bạn có thể chạy:
+
+bash
+wget https://pkgs.k8s.io/core/stable/v1.28/rpm/kubelet-1.28.0-0.x86_64.rpm
+wget https://pkgs.k8s.io/core/stable/v1.28/rpm/kubeadm-1.28.0-0.x86_64.rpm
+wget https://pkgs.k8s.io/core/stable/v1.28/rpm/kubectl-1.28.0-0.x86_64.rpm
