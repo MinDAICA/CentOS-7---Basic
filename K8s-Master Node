@@ -1,0 +1,114 @@
+Master Node 
+Tuyệt vời, bạn đang ở thư mục /root trên CentOS 7 và muốn cài đặt cụm Kubernetes gồm 1 master và 2 worker node. Dưới đây là hướng dẫn chi tiết từng bước, kèm giải thích rõ ràng để tránh lỗi thường gặp. Mình sẽ chia theo từng giai đoạn triển khai.
+
+🧱 Giai đoạn 1: Chuẩn bị hệ thống
+🔧 Bước 1: Đặt hostname cho từng node
+Trên mỗi node, chạy:
+
+bash
+hostnamectl set-hostname master1160      # Trên master
+hostnamectl set-hostname worker1161      # Trên worker 1
+hostnamectl set-hostname worker1162      # Trên worker 2
+🔥 Bước 2: Tắt SELinux và Firewall
+bash
+sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
+setenforce 0
+
+systemctl stop firewalld
+systemctl disable firewalld
+🔍 SELinux và firewall có thể chặn các kết nối nội bộ giữa các node, gây lỗi khi khởi tạo cluster.
+
+🕰️ Bước 3: Đồng bộ thời gian
+bash
+yum -y install chrony
+systemctl enable chronyd
+systemctl start chronyd
+chronyc sources
+⏱️ Thời gian không đồng bộ có thể gây lỗi khi xác thực giữa các node.
+
+🧹 Bước 4: Tắt swap
+bash
+swapoff -a
+sed -i '/swap/d' /etc/fstab
+⚠️ Kubernetes yêu cầu tắt swap để kubelet hoạt động ổn định.
+
+🐳 Giai đoạn 2: Cài Docker
+bash
+curl -fsSL https://get.docker.com/ | sh
+systemctl start docker
+systemctl enable docker
+🐋 Docker là container runtime để chạy các Pod trong Kubernetes.
+
+📦 Giai đoạn 3: Cài kubeadm, kubelet, kubectl
+Bước 1: Tạo repo Kubernetes
+bash
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+       https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+exclude=kubelet kubeadm kubectl
+EOF
+Bước 2: Cài đặt các gói
+bash
+yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+systemctl enable kubelet
+🌐 Giai đoạn 4: Cấu hình mạng và kernel
+bash
+modprobe br_netfilter
+
+cat <<EOF > /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+
+sysctl --system
+🌉 Giúp Kubernetes xử lý traffic giữa các container.
+
+🚀 Giai đoạn 5: Khởi tạo Master Node
+Trên master1160:
+
+bash
+kubeadm init --apiserver-advertise-address=192.168.1.160 --pod-network-cidr=192.168.0.0/16
+Sau khi hoàn tất, cấu hình kubectl:
+
+bash
+mkdir -p $HOME/.kube
+cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+chown $(id -u):$(id -g) $HOME/.kube/config
+🧵 Giai đoạn 6: Cài mạng Pod (Calico)
+bash
+kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+🕸️ Calico giúp các Pod giao tiếp với nhau qua mạng overlay.
+
+🤝 Giai đoạn 7: Thêm Worker Node
+Trên master1160, bạn sẽ nhận được lệnh kubeadm join .... Chạy lệnh đó trên worker1161 và worker1162.
+
+Ví dụ:
+
+bash
+kubeadm join 192.168.1.160:6443 --token abcdef.0123456789abcdef \
+    --discovery-token-ca-cert-hash sha256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+✅ Giai đoạn 8: Kiểm tra cluster
+Trên master:
+
+bash
+kubectl get nodes
+Kết quả mong đợi:
+
+Code
+NAME         STATUS   ROLES           AGE     VERSION
+master1160   Ready    control-plane   XXm     v1.XX.X
+worker1161   Ready    <none>          XXm     v1.XX.X
+worker1162   Ready    <none>          XXm     v1.XX.X
+🧯 Một số lỗi thường gặp & cách khắc phục
+Lỗi thường gặp	Nguyên nhân	Cách khắc phục
+swap is enabled	chưa tắt swap	swapoff -a và sửa /etc/fstab
+firewalld blocks port	firewall đang bật	systemctl stop firewalld
+token expired	token join hết hạn	tạo lại bằng kubeadm token create --print-join-command
+network plugin not working	chưa cài Calico/Flannel	kubectl apply -f calico.yaml
+Nếu bạn muốn mình viết script tự động hóa toàn bộ quá trình này hoặc hỗ trợ cài Dashboard, Ingress, hoặc triển khai ứng dụng mẫu, mình có thể làm ngay. Bạn muốn tiếp tục với phần nào?&#95;{{{C3ITATION{{{&#95;4{
