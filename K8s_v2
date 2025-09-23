@@ -117,3 +117,79 @@ WARNING: Access to the remote API on a privileged Docker daemon is equivalent
 
 ================================================================================
 
+
+[root@master1160 ~]# systemctl start docker
+[root@master1160 ~]# systemctl enable docker
+[root@master1160 ~]#
+[root@master1160 ~]#
+[root@master1160 ~]# ^C
+[root@master1160 ~]# cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+> [kubernetes]
+> name=Kubernetes
+> baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
+> enabled=1
+> gpgcheck=1
+> repo_gpgcheck=1
+> gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+>        https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+> exclude=kubelet kubeadm kubectl
+> EOF
+[root@master1160 ~]#
+[root@master1160 ~]# yum install -y kubelet kubeadm kubectl --disableexcludes=ku                                                                                                                                   bernetes
+Loaded plugins: fastestmirror
+Loading mirror speeds from cached hostfile
+ * epel: d2lzkl7pfhq30w.cloudfront.net
+https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64/repodata/repom                                                                                                                                   d.xml: [Errno 14] HTTPS Error 404 - Not Found
+Trying other mirror.
+To address this issue please refer to the below wiki article
+
+https://wiki.centos.org/yum-errors
+
+If above article doesn't help to resolve this issue please use https://bugs.cent                                                                                                                                   os.org/.
+
+Package kubelet-1.28.15-150500.1.1.x86_64 already installed and latest version
+Package kubeadm-1.28.15-150500.1.1.x86_64 already installed and latest version
+Package kubectl-1.28.15-150500.1.1.x86_64 already installed and latest version
+Nothing to do
+[root@master1160 ~]# systemctl enable kubelet
+[root@master1160 ~]#
+[root@master1160 ~]# modprobe br_netfilter
+[root@master1160 ~]#
+[root@master1160 ~]# cat <<EOF > /etc/sysctl.d/k8s.conf
+> net.bridge.bridge-nf-call-ip6tables = 1
+> net.bridge.bridge-nf-call-iptables = 1
+> EOF
+[root@master1160 ~]#
+[root@master1160 ~]# sysctl --system
+* Applying /usr/lib/sysctl.d/00-system.conf ...
+net.bridge.bridge-nf-call-ip6tables = 0
+net.bridge.bridge-nf-call-iptables = 0
+net.bridge.bridge-nf-call-arptables = 0
+* Applying /usr/lib/sysctl.d/10-default-yama-scope.conf ...
+kernel.yama.ptrace_scope = 0
+* Applying /usr/lib/sysctl.d/50-default.conf ...
+kernel.sysrq = 16
+kernel.core_uses_pid = 1
+kernel.kptr_restrict = 1
+net.ipv4.conf.default.rp_filter = 1
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.accept_source_route = 0
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.promote_secondaries = 1
+net.ipv4.conf.all.promote_secondaries = 1
+fs.protected_hardlinks = 1
+fs.protected_symlinks = 1
+* Applying /etc/sysctl.d/99-sysctl.conf ...
+* Applying /etc/sysctl.d/k8s.conf ...
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+* Applying /etc/sysctl.conf ...
+[root@master1160 ~]#
+[root@master1160 ~]# kubeadm init --apiserver-advertise-address=192.168.1.160 --                                                                                                                                   pod-network-cidr=192.168.0.0/16
+Found multiple CRI endpoints on the host. Please define which one do you wish to                                                                                                                                    use by setting the 'criSocket' field in the kubeadm configuration file: unix://                                                                                                                                   /var/run/containerd/containerd.sock, unix:///var/run/cri-dockerd.sock
+To see the stack trace of this error execute with --v=5 or higher
+[root@master1160 ~]#
+
+
+
+
