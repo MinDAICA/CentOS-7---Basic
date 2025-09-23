@@ -311,4 +311,9 @@ daemonset.apps/calico-node created
 deployment.apps/calico-kube-controllers created
 
 
+[root@master1160 ~]# kubectl get nodes
+NAME         STATUS   ROLES           AGE    VERSION
+master1160   Ready    control-plane   8m9s   v1.28.15
+
+
 
