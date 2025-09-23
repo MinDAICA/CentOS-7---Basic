@@ -1,0 +1,53 @@
+# sudo vi /etc/yum.repos.d/CentOS-Base.repo
+
+  [base]
+  name=CentOS-7.9.2009 - Base
+  baseurl=http://vault.centos.org/7.9.2009/os/$basearch/
+  gpgcheck=1
+  gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+  enabled=1
+  metadata_expire=never
+  
+  [updates]
+  name=CentOS-7.9.2009 - Updates
+  baseurl=http://vault.centos.org/7.9.2009/updates/$basearch/
+  gpgcheck=1
+  gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+  enabled=1
+  metadata_expire=never
+  
+  [extras]
+  name=CentOS-7.9.2009 - Extras
+  baseurl=http://vault.centos.org/7.9.2009/extras/$basearch/
+  gpgcheck=1
+  gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+  enabled=1
+  metadata_expire=never
+
+  [centosplus]
+  name=CentOS-7.9.2009 - Plus
+  baseurl=http://vault.centos.org/7.9.2009/centosplus/$basearch/
+  enabled=1
+  gpgcheck=1
+  gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+  metadata_expire=never
+
+# sudo yum clean all
+# sudo yum makecache
+# sudo yum update
+# yum install epel-release -y
+
+IP Address: static
+# vi /etc/sysconfig/network-scripts/ifcfg-eth0
+TYPE=Ethernet
+BOOTPROTO=none
+DEFROUTE=yes
+NAME=eth0
+DEVICE=eth0
+ONBOOT=yes
+IPADDR=192.168.1.100
+PREFIX=24
+GATEWAY=192.168.1.1
+DNS1=8.8.8.8
+DNS2=8.8.4.4
+# yum install -y openssh-server
