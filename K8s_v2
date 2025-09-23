@@ -201,5 +201,5 @@ I0923 23:08:18.827516    9659 version.go:256] remote version is much newer: v1.3
 [preflight] This might take a minute or two, depending on the speed of your internet connection
 [preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
 
-
+!...!!!!!!.....!!!!... WAIT FOR A WHILE...!!!!....!!!!...!!!....!
 
