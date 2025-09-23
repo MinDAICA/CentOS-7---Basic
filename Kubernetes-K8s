@@ -4,3 +4,33 @@ Quy trình cài đặt Kubernetes bằng kubeadm trên CentOS 7, áp dụng cho:
   Worker node 2: 172.16.10.22 – worker1022
 Mình cài mỗi VM là một CentOS 7: có tên hostname và IP như trên 
   Trên Master Node1:
+  Bước 1: Chuẩn bị hệ thống (trên tất cả các node) bash
+    # Đặt hostname
+    hostnamectl set-hostname master1160   # hoặc worker1161 / worker1162
+    
+    # Tắt swap, SELinux, firewall
+    swapoff -a
+    sed -i '/swap/d' /etc/fstab
+    setenforce 0
+    sed -i 's/^SELINUX=enforcing$/SELINUX=disabled/' /etc/selinux/config
+    systemctl stop firewalld
+    systemctl disable firewalld
+    
+    # Cài chrony và cấu hình mạng
+    yum install -y chrony
+    systemctl enable chronyd
+    systemctl start chronyd
+    
+    modprobe br_netfilter
+    cat <<EOF > /etc/sysctl.d/k8s.conf
+    net.bridge.bridge-nf-call-ip6tables = 1
+    net.bridge.bridge-nf-call-iptables = 1
+    EOF
+    sysctl --system
+    
+    # Thêm vào /etc/hosts
+    cat <<EOF >> /etc/hosts
+    192.168.1.160 master1160
+    192.168.1.161 worker1161
+    192.168.1.162 worker1162
+    EOF
