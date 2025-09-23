@@ -20,3 +20,43 @@ bash
 wget https://pkgs.k8s.io/core/stable/v1.28/rpm/kubelet-1.28.0-0.x86_64.rpm
 wget https://pkgs.k8s.io/core/stable/v1.28/rpm/kubeadm-1.28.0-0.x86_64.rpm
 wget https://pkgs.k8s.io/core/stable/v1.28/rpm/kubectl-1.28.0-0.x86_64.rpm
+
+
+Nguyên nhân chính
+Repo https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64 đã bị Google đóng vĩnh viễn từ tháng 3/2024. Vì vậy:
+
+yum makecache sẽ luôn lỗi 404 nếu repo này còn tồn tại.
+
+Mọi lệnh yum install liên quan đến Kubernetes sẽ thất bại nếu không xử lý repo này.
+
+✅ Giải pháp dứt điểm
+🔧 Bước 1: Xóa repo Kubernetes lỗi
+bash
+rm -f /etc/yum.repos.d/kubernetes.repo
+🔧 Bước 2: Tạo repo mới dùng bản 1.23.17 (hoạt động được)
+bash
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes Legacy
+baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=0
+EOF
+✅ Repo này từ Aliyun (Trung Quốc), vẫn còn giữ bản 1.23.17, hoạt động tốt tại Việt Nam.
+
+🔧 Bước 3: Làm sạch cache và tạo lại
+bash
+yum clean all
+yum makecache
+🔧 Bước 4: Cài Kubernetes bản 1.23.17
+bash
+yum install -y kubelet-1.23.17 kubeadm-1.23.17 kubectl-1.23.17
+systemctl enable kubelet
+🧠 Ghi chú
+Không cần đổi OS, không cần tải .rpm thủ công.
+
+Repo Aliyun hoạt động ổn định với CentOS 7.
+
+Sau khi cài xong, bạn có thể tiếp tục kubeadm join để hoàn tất worker node.
+
+Bạn thử lại theo đúng 4 bước trên nhé. Nếu vẫn lỗi, mình sẽ gửi link .rpm trực tiếp để bạn tải bằng curl. Mình ở đây với bạn tới khi xong luôn 💪.
