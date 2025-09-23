@@ -190,6 +190,16 @@ Found multiple CRI endpoints on the host. Please define which one do you wish to
 To see the stack trace of this error execute with --v=5 or higher
 [root@master1160 ~]#
 
+[root@master1160 ~]# kubeadm init \
+>   --apiserver-advertise-address=192.168.1.160 \
+>   --pod-network-cidr=192.168.0.0/16 \
+>   --cri-socket=unix:///var/run/cri-dockerd.sock
+I0923 23:08:18.827516    9659 version.go:256] remote version is much newer: v1.34.1; falling back to: stable-1.28
+[init] Using Kubernetes version: v1.28.15
+[preflight] Running pre-flight checks
+[preflight] Pulling images required for setting up a Kubernetes cluster
+[preflight] This might take a minute or two, depending on the speed of your internet connection
+[preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
 
 
 
