@@ -1,0 +1,63 @@
+Đúng rồi Dong 👍 — các thao tác trên worker node sẽ gần như tương tự như trên master, chỉ khác ở chỗ không chạy kubeadm init, mà thay vào đó là kubeadm join để kết nối vào cluster.
+
+🧩 Tóm tắt các bước cần thực hiện trên mỗi Worker Node (worker1161, worker1162)
+🔧 1. Đặt hostname
+bash
+hostnamectl set-hostname worker1161  # hoặc worker1162
+🔥 2. Tắt swap, firewall, SELinux
+bash
+swapoff -a
+sed -i '/swap/d' /etc/fstab
+
+systemctl stop firewalld
+systemctl disable firewalld
+
+setenforce 0
+sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
+🐳 3. Cài container runtime (Docker hoặc containerd)
+Ví dụ nếu bạn dùng Docker:
+
+bash
+curl -fsSL https://get.docker.com | sh
+systemctl enable docker
+systemctl start docker
+Hoặc nếu bạn dùng containerd, mình có thể hướng dẫn riêng.
+
+📦 4. Cài kubeadm, kubelet, kubectl
+bash
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+       https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+exclude=kubelet kubeadm kubectl
+EOF
+
+yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+systemctl enable kubelet
+🌐 5. Cấu hình mạng kernel
+bash
+modprobe br_netfilter
+
+cat <<EOF > /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+
+sysctl --system
+🤝 6. Tham gia vào cluster
+Chạy lệnh kubeadm join mà bạn nhận được từ master:
+
+bash
+kubeadm join 192.168.1.160:6443 --token gxonk8.fpo988blh0pyzlzl \
+  --discovery-token-ca-cert-hash sha256:17a5e0c161d0fb8709ea58c6512f422032692365506c364170d1ff1b22520158
+✅ 7. Kiểm tra trên master
+Trên master1160, chạy:
+
+bash
+kubectl get nodes
+Bạn sẽ thấy cả worker1161 và worker1162 ở trạng thái Ready.
