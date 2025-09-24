@@ -61,3 +61,26 @@ Trên master1160, chạy:
 bash
 kubectl get nodes
 Bạn sẽ thấy cả worker1161 và worker1162 ở trạng thái Ready.
+
+
+
+
+
+[root@worker1161 ~]# kubeadm join 192.168.1.160:6443 \
+>   --token 5d6kjx.nwxq64fivgn4nn9k \
+>   --discovery-token-ca-cert-hash sha256:17a5e0c161d0fb8709ea58c6512f422032692365506c364170d1ff1b22520158 \
+>   --cri-socket unix:///var/run/cri-dockerd.sock
+[preflight] Running pre-flight checks
+[preflight] Reading configuration from the cluster...
+[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Starting the kubelet
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap...
+
+This node has joined the cluster:
+* Certificate signing request was sent to apiserver and a response was received.
+* The Kubelet was informed of the new secure connection details.
+
+Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+
