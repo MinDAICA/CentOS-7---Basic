@@ -61,3 +61,86 @@ kubectl hoạt động bình thường.
 Cluster tự khởi động lại.
 
 Bạn có thể dùng kubectl get nodes ngay sau khi máy lên.
+
+
+
+--> CHÍNH XÁC HƠN! -----> 
+
+Tuyệt vời luôn, Dong ơi! Dưới đây là toàn bộ script tự động hóa giúp bạn kiểm tra và khởi động lại các thành phần Kubernetes sau mỗi lần reboot — áp dụng cho cả master node và worker node trên CentOS 7. Script này đảm bảo:
+
+kubelet luôn chạy.
+
+Docker/containerd luôn sẵn sàng.
+
+File ~/.kube/config được khôi phục (chỉ trên master).
+
+Swap được tắt.
+
+Log được ghi lại để dễ kiểm tra.
+
+📄 Script: /usr/local/bin/k8s-autostart.sh
+bash
+#!/bin/bash
+
+echo "[K8s AutoStart] Bắt đầu kiểm tra hệ thống..."
+
+# Tắt swap nếu đang bật
+if swapon --summary | grep -q 'dev'; then
+  echo "[K8s AutoStart] Tắt swap..."
+  swapoff -a
+fi
+
+# Khởi động Docker nếu chưa chạy
+if ! systemctl is-active --quiet docker; then
+  echo "[K8s AutoStart] Khởi động Docker..."
+  systemctl start docker
+fi
+
+# Khởi động kubelet nếu chưa chạy
+if ! systemctl is-active --quiet kubelet; then
+  echo "[K8s AutoStart] Khởi động kubelet..."
+  systemctl start kubelet
+fi
+
+# Chỉ dành cho master node: khôi phục ~/.kube/config nếu mất
+if hostname | grep -q "master"; then
+  if [ ! -f /root/.kube/config ]; then
+    echo "[K8s AutoStart] Khôi phục file kube config cho master..."
+    mkdir -p /root/.kube
+    cp -i /etc/kubernetes/admin.conf /root/.kube/config
+    chown $(id -u):$(id -g) /root/.kube/config
+  fi
+fi
+
+echo "[K8s AutoStart] Hoàn tất khởi động hệ thống Kubernetes."
+⚙️ Tạo systemd service để chạy sau reboot
+bash
+vi /etc/systemd/system/k8s-autostart.service
+Nội dung:
+
+ini
+[Unit]
+Description=Kubernetes AutoStart Script
+After=network.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/k8s-autostart.sh
+
+[Install]
+WantedBy=multi-user.target
+🔐 Kích hoạt service
+bash
+chmod +x /usr/local/bin/k8s-autostart.sh
+systemctl daemon-reexec
+systemctl daemon-reload
+systemctl enable k8s-autostart
+✅ Sau khi reboot
+Master node sẽ có kubectl hoạt động ngay.
+
+Worker node sẽ tự kết nối lại cluster.
+
+Không cần chạy lại kubeadm join hoặc init.
+
+Swap luôn tắt, Docker và kubelet luôn chạy.
+
