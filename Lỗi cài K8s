@@ -1,1 +1,26 @@
+root@worker1161 cri-dockerd]# install -o root -g root -m 0755 $(pwd)/cri-dockerd /usr/local/bin/cri-dockerd install: omitting directory ‘/root/cri-dockerd/cri-dockerd’
 
+[root@worker1161 cri-dockerd]# find /root/cri-dockerd -type f -name "cri-dockerd" 
+
+--> /root/cri-dockerd/cri-dockerd.bin/cri-dockerd
+
+Dong ơi, mình đã hiểu chính xác lỗi rồi — và đây là cách fix dứt điểm:
+❗ Vấn đề thực sự
+Bạn đang ở thư mục cri-dockerd, và trong đó có:
+•	Một file thực thi tên là cri-dock
+Vấn đề thực sự
+Bạn đang ở thư mục cri-dockerd, và trong đó có:
+•	Một file thực thi tên là cri-dockerd
+•	Một thư mục cũng tên là cri-dockerd
+→ Khi bạn chạy $(pwd)/cri-dockerd, hệ thống ưu tiên thư mục, nên lệnh install bị nhầm và báo:
+install: omitting directory ‘...’
+
+--> install -o root -g root -m 0755 /root/cri-dockerd/cri-dockerd.bin/cri-dockerd /usr/local/bin/cri-dockerd
+
+ls -lh /usr/local/bin/cri-dockerd
+/usr/local/bin/cri-dockerd --version
+
+systemctl daemon-reexec
+systemctl daemon-reload
+systemctl restart cri-docker.service
+systemctl status cri-docker.service
