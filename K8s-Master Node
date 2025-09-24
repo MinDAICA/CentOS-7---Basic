@@ -112,3 +112,316 @@ firewalld blocks port	firewall đang bật	systemctl stop firewalld
 token expired	token join hết hạn	tạo lại bằng kubeadm token create --print-join-command
 network plugin not working	chưa cài Calico/Flannel	kubectl apply -f calico.yaml
 Nếu bạn muốn mình viết script tự động hóa toàn bộ quá trình này hoặc hỗ trợ cài Dashboard, Ingress, hoặc triển khai ứng dụng mẫu, mình có thể làm ngay. Bạn muốn tiếp tục với phần nào?&#95;{{{C3ITATION{{{&#95;4{
+
+
+--> NOTE! Cả quá trình cài Master Node <---
+[root@master1160 ~]# ls /usr/local/bin/k8s-autostart.sh
+/usr/local/bin/k8s-autostart.sh
+[root@master1160 ~]# # Tắt swap
+[root@master1160 ~]# swapoff -a
+
+# Cài Docker
+yum install -y docker
+[root@master1160 ~]# sed -i '/swap/d' /etc/fstab
+systemctl enable docker
+systemctl start docker
+
+# Cài kubeadm, kubelet, kubectl
+[root@master1160 ~]#
+[root@master1160 ~]# # Cài Docker
+[root@master1160 ~]# yum install -y docker
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=0
+EOF
+
+yum install -y kubelet kubeadm kubectl
+systemctl enable kubelet
+Loaded plugins: fastestmirror
+Loading mirror speeds from cached hostfile
+epel/x86_64/metalink                                                                                                                                                                        | 4.4 kB  00:00:00
+ * epel: d2lzkl7pfhq30w.cloudfront.net
+base                                                                                                                                                                                        | 3.6 kB  00:00:00
+centosplus                                                                                                                                                                                  | 2.9 kB  00:00:00
+docker-ce-stable                                                                                                                                                                            | 3.5 kB  00:00:00
+extras                                                                                                                                                                                      | 2.9 kB  00:00:00
+https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64/repodata/repomd.xml: [Errno 14] HTTPS Error 404 - Not Found
+Trying other mirror.
+To address this issue please refer to the below wiki article
+
+https://wiki.centos.org/yum-errors
+
+If above article doesn't help to resolve this issue please use https://bugs.centos.org/.
+
+updates                                                                                                                                                                                     | 2.9 kB  00:00:00
+Resolving Dependencies
+--> Running transaction check
+---> Package docker.x86_64 2:1.13.1-210.git7d71120.el7.centos will be installed
+--> Processing Dependency: docker-common = 2:1.13.1-210.git7d71120.el7.centos for package: 2:docker-1.13.1-210.git7d71120.el7.centos.x86_64
+--> Processing Dependency: docker-client = 2:1.13.1-210.git7d71120.el7.centos for package: 2:docker-1.13.1-210.git7d71120.el7.centos.x86_64
+--> Processing Dependency: subscription-manager-rhsm-certificates for package: 2:docker-1.13.1-210.git7d71120.el7.centos.x86_64
+--> Running transaction check
+---> Package docker-client.x86_64 2:1.13.1-210.git7d71120.el7.centos will be installed
+---> Package docker-common.x86_64 2:1.13.1-210.git7d71120.el7.centos will be installed
+--> Processing Dependency: skopeo-containers >= 1:0.1.26-2 for package: 2:docker-common-1.13.1-210.git7d71120.el7.centos.x86_64
+--> Processing Dependency: oci-umount >= 2:2.3.3-3 for package: 2:docker-common-1.13.1-210.git7d71120.el7.centos.x86_64
+--> Processing Dependency: oci-systemd-hook >= 1:0.1.4-9 for package: 2:docker-common-1.13.1-210.git7d71120.el7.centos.x86_64
+--> Processing Dependency: oci-register-machine >= 1:0-5.13 for package: 2:docker-common-1.13.1-210.git7d71120.el7.centos.x86_64
+--> Processing Dependency: container-storage-setup >= 0.9.0-1 for package: 2:docker-common-1.13.1-210.git7d71120.el7.centos.x86_64
+--> Processing Dependency: atomic-registries for package: 2:docker-common-1.13.1-210.git7d71120.el7.centos.x86_64
+---> Package subscription-manager-rhsm-certificates.x86_64 0:1.24.54-1.el7.centos will be installed
+--> Running transaction check
+---> Package atomic-registries.x86_64 1:1.22.1-33.gitb507039.el7_8 will be installed
+--> Processing Dependency: python-yaml for package: 1:atomic-registries-1.22.1-33.gitb507039.el7_8.x86_64
+--> Processing Dependency: python-setuptools for package: 1:atomic-registries-1.22.1-33.gitb507039.el7_8.x86_64
+--> Processing Dependency: python-pytoml for package: 1:atomic-registries-1.22.1-33.gitb507039.el7_8.x86_64
+---> Package container-storage-setup.noarch 0:0.11.0-2.git5eaf76c.el7 will be installed
+---> Package containers-common.x86_64 1:0.1.40-11.el7_8 will be installed
+--> Processing Dependency: subscription-manager for package: 1:containers-common-0.1.40-11.el7_8.x86_64
+---> Package oci-register-machine.x86_64 1:0-6.git2b44233.el7 will be installed
+---> Package oci-systemd-hook.x86_64 1:0.2.0-1.git05e6923.el7_6 will be installed
+--> Processing Dependency: libyajl.so.2()(64bit) for package: 1:oci-systemd-hook-0.2.0-1.git05e6923.el7_6.x86_64
+---> Package oci-umount.x86_64 2:2.5-3.el7 will be installed
+--> Running transaction check
+---> Package PyYAML.x86_64 0:3.10-11.el7 will be installed
+--> Processing Dependency: libyaml-0.so.2()(64bit) for package: PyYAML-3.10-11.el7.x86_64
+---> Package python-pytoml.noarch 0:0.1.14-1.git7dea353.el7 will be installed
+---> Package python-setuptools.noarch 0:0.9.8-7.el7 will be installed
+--> Processing Dependency: python-backports-ssl_match_hostname for package: python-setuptools-0.9.8-7.el7.noarch
+---> Package subscription-manager.x86_64 0:1.24.54-1.el7.centos will be installed
+--> Processing Dependency: subscription-manager-rhsm = 1.24.54 for package: subscription-manager-1.24.54-1.el7.centos.x86_64
+--> Processing Dependency: python-dmidecode >= 3.12.2-2 for package: subscription-manager-1.24.54-1.el7.centos.x86_64
+--> Processing Dependency: usermode for package: subscription-manager-1.24.54-1.el7.centos.x86_64
+--> Processing Dependency: python-syspurpose for package: subscription-manager-1.24.54-1.el7.centos.x86_64
+--> Processing Dependency: python-six for package: subscription-manager-1.24.54-1.el7.centos.x86_64
+--> Processing Dependency: python-requests for package: subscription-manager-1.24.54-1.el7.centos.x86_64
+--> Processing Dependency: python-inotify for package: subscription-manager-1.24.54-1.el7.centos.x86_64
+--> Processing Dependency: python-ethtool for package: subscription-manager-1.24.54-1.el7.centos.x86_64
+--> Processing Dependency: python-dateutil for package: subscription-manager-1.24.54-1.el7.centos.x86_64
+---> Package yajl.x86_64 0:2.0.4-4.el7 will be installed
+--> Running transaction check
+---> Package libyaml.x86_64 0:0.1.4-11.el7_0 will be installed
+---> Package python-backports-ssl_match_hostname.noarch 0:3.5.0.1-1.el7 will be installed
+--> Processing Dependency: python-ipaddress for package: python-backports-ssl_match_hostname-3.5.0.1-1.el7.noarch
+--> Processing Dependency: python-backports for package: python-backports-ssl_match_hostname-3.5.0.1-1.el7.noarch
+---> Package python-dateutil.noarch 0:1.5-7.el7 will be installed
+---> Package python-dmidecode.x86_64 0:3.12.2-4.el7 will be installed
+---> Package python-ethtool.x86_64 0:0.8-8.el7 will be installed
+--> Processing Dependency: libnl.so.1()(64bit) for package: python-ethtool-0.8-8.el7.x86_64
+---> Package python-inotify.noarch 0:0.9.4-4.el7 will be installed
+---> Package python-requests.noarch 0:2.6.0-10.el7 will be installed
+--> Processing Dependency: python-urllib3 >= 1.10.2-1 for package: python-requests-2.6.0-10.el7.noarch
+---> Package python-six.noarch 0:1.9.0-2.el7 will be installed
+---> Package python-syspurpose.x86_64 0:1.24.54-1.el7.centos will be installed
+---> Package subscription-manager-rhsm.x86_64 0:1.24.54-1.el7.centos will be installed
+---> Package usermode.x86_64 0:1.111-6.el7 will be installed
+--> Running transaction check
+---> Package libnl.x86_64 0:1.1.4-3.el7 will be installed
+---> Package python-backports.x86_64 0:1.0-8.el7 will be installed
+---> Package python-ipaddress.noarch 0:1.0.16-2.el7 will be installed
+---> Package python-urllib3.noarch 0:1.10.2-7.el7 will be installed
+--> Processing Conflict: 1:docker-ce-cli-26.1.4-1.el7.x86_64 conflicts docker
+--> Processing Conflict: 1:docker-ce-cli-26.1.4-1.el7.x86_64 conflicts docker-io
+--> Processing Conflict: 3:docker-ce-26.1.4-1.el7.x86_64 conflicts docker
+--> Processing Conflict: 3:docker-ce-26.1.4-1.el7.x86_64 conflicts docker-io
+--> Finished Dependency Resolution
+Error: docker-ce-cli conflicts with 2:docker-1.13.1-210.git7d71120.el7.centos.x86_64
+Error: docker-ce conflicts with 2:docker-1.13.1-210.git7d71120.el7.centos.x86_64
+ You could try using --skip-broken to work around the problem
+ You could try running: rpm -Va --nofiles --nodigest
+[root@master1160 ~]# systemctl enable docker
+[root@master1160 ~]# systemctl start docker
+[root@master1160 ~]#
+[root@master1160 ~]# # Cài kubeadm, kubelet, kubectl
+[root@master1160 ~]# cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+> [kubernetes]
+> name=Kubernetes
+> baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+> enabled=1
+> gpgcheck=0
+> EOF
+[root@master1160 ~]#
+[root@master1160 ~]# yum install -y kubelet kubeadm kubectl
+Loaded plugins: fastestmirror
+Loading mirror speeds from cached hostfile
+ * epel: d2lzkl7pfhq30w.cloudfront.net
+https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64/repodata/repomd.xml: [Errno 14] HTTPS Error 404 - Not Found
+Trying other mirror.
+To address this issue please refer to the below wiki article
+
+https://wiki.centos.org/yum-errors
+
+If above article doesn't help to resolve this issue please use https://bugs.centos.org/.
+
+Package kubelet-1.28.15-150500.1.1.x86_64 already installed and latest version
+Package kubeadm-1.28.15-150500.1.1.x86_64 already installed and latest version
+Package kubectl-1.28.15-150500.1.1.x86_64 already installed and latest version
+Nothing to do
+[root@master1160 ~]# systemctl enable kubelet
+[root@master1160 ~]# kubeadm init \
+>   --apiserver-advertise-address=192.168.1.160 \
+>   --pod-network-cidr=192.168.0.0/16 \
+>   --cri-socket=unix:///var/run/cri-dockerd.sock
+I0925 01:15:40.046926    1840 version.go:256] remote version is much newer: v1.34.1; falling back to: stable-1.28
+[init] Using Kubernetes version: v1.28.15
+[preflight] Running pre-flight checks
+[preflight] Pulling images required for setting up a Kubernetes cluster
+[preflight] This might take a minute or two, depending on the speed of your internet connection
+[preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
+[certs] Using certificateDir folder "/etc/kubernetes/pki"
+[certs] Generating "ca" certificate and key
+[certs] Generating "apiserver" certificate and key
+[certs] apiserver serving cert is signed for DNS names [kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local master1160] and IPs [10.96.0.1 192.168.1.160]
+[certs] Generating "apiserver-kubelet-client" certificate and key
+[certs] Generating "front-proxy-ca" certificate and key
+[certs] Generating "front-proxy-client" certificate and key
+[certs] Generating "etcd/ca" certificate and key
+[certs] Generating "etcd/server" certificate and key
+[certs] etcd/server serving cert is signed for DNS names [localhost master1160] and IPs [192.168.1.160 127.0.0.1 ::1]
+[certs] Generating "etcd/peer" certificate and key
+[certs] etcd/peer serving cert is signed for DNS names [localhost master1160] and IPs [192.168.1.160 127.0.0.1 ::1]
+[certs] Generating "etcd/healthcheck-client" certificate and key
+[certs] Generating "apiserver-etcd-client" certificate and key
+[certs] Generating "sa" key and public key
+[kubeconfig] Using kubeconfig folder "/etc/kubernetes"
+[kubeconfig] Writing "admin.conf" kubeconfig file
+[kubeconfig] Writing "kubelet.conf" kubeconfig file
+[kubeconfig] Writing "controller-manager.conf" kubeconfig file
+[kubeconfig] Writing "scheduler.conf" kubeconfig file
+[etcd] Creating static Pod manifest for local etcd in "/etc/kubernetes/manifests"
+[control-plane] Using manifest folder "/etc/kubernetes/manifests"
+[control-plane] Creating static Pod manifest for "kube-apiserver"
+[control-plane] Creating static Pod manifest for "kube-controller-manager"
+[control-plane] Creating static Pod manifest for "kube-scheduler"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Starting the kubelet
+[wait-control-plane] Waiting for the kubelet to boot up the control plane as static Pods from directory "/etc/kubernetes/manifests". This can take up to 4m0s
+[apiclient] All control plane components are healthy after 14.001636 seconds
+[upload-config] Storing the configuration used in ConfigMap "kubeadm-config" in the "kube-system" Namespace
+[kubelet] Creating a ConfigMap "kubelet-config" in namespace kube-system with the configuration for the kubelets in the cluster
+[upload-certs] Skipping phase. Please see --upload-certs
+[mark-control-plane] Marking the node master1160 as control-plane by adding the labels: [node-role.kubernetes.io/control-plane node.kubernetes.io/exclude-from-external-load-balancers]
+[mark-control-plane] Marking the node master1160 as control-plane by adding the taints [node-role.kubernetes.io/control-plane:NoSchedule]
+[bootstrap-token] Using token: 03ldq5.n4fgm61sweobggs2
+[bootstrap-token] Configuring bootstrap tokens, cluster-info ConfigMap, RBAC Roles
+[bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to get nodes
+[bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order for nodes to get long term certificate credentials
+[bootstrap-token] Configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token
+[bootstrap-token] Configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
+[bootstrap-token] Creating the "cluster-info" ConfigMap in the "kube-public" namespace
+[kubelet-finalize] Updating "/etc/kubernetes/kubelet.conf" to point to a rotatable kubelet client certificate and key
+[addons] Applied essential addon: CoreDNS
+[addons] Applied essential addon: kube-proxy
+
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 192.168.1.160:6443 --token 03ldq5.n4fgm61sweobggs2 \
+        --discovery-token-ca-cert-hash sha256:4ee3711a8bdf768e46dc95e69be4ee361d2e1d3bdb3b2b9ea2d9cb75549de181
+[root@master1160 ~]# kubeadm init   --apiserver-advertise-address=192.168.1.160   --pod-network-cidr=192.168.0.0/16   --cri-socket=unix:///var/run/cri-dockerd.sock^C
+[root@master1160 ~]# mkdir -p $HOME/.kube
+[root@master1160 ~]# cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+[root@master1160 ~]# chown $(id -u):$(id -g) $HOME/.kube/config
+[root@master1160 ~]# kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+poddisruptionbudget.policy/calico-kube-controllers created
+serviceaccount/calico-kube-controllers created
+serviceaccount/calico-node created
+configmap/calico-config created
+customresourcedefinition.apiextensions.k8s.io/bgpconfigurations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/bgppeers.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/blockaffinities.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/caliconodestatuses.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/clusterinformations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/felixconfigurations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/globalnetworkpolicies.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/globalnetworksets.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/hostendpoints.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ipamblocks.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ipamconfigs.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ipamhandles.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ippools.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ipreservations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/kubecontrollersconfigurations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/networkpolicies.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/networksets.crd.projectcalico.org created
+clusterrole.rbac.authorization.k8s.io/calico-kube-controllers created
+clusterrole.rbac.authorization.k8s.io/calico-node created
+clusterrolebinding.rbac.authorization.k8s.io/calico-kube-controllers created
+clusterrolebinding.rbac.authorization.k8s.io/calico-node created
+daemonset.apps/calico-node created
+deployment.apps/calico-kube-controllers created
+[root@master1160 ~]# kubectl get pods -n kube-system
+NAME                                       READY   STATUS     RESTARTS   AGE
+calico-kube-controllers-658d97c59c-v4kbl   0/1     Pending    0          13s
+calico-node-h66v5                          0/1     Init:1/3   0          13s
+coredns-5dd5756b68-5jkwf                   0/1     Pending    0          5m6s
+coredns-5dd5756b68-qz47g                   0/1     Pending    0          5m6s
+etcd-master1160                            1/1     Running    0          5m25s
+kube-apiserver-master1160                  1/1     Running    0          5m19s
+kube-controller-manager-master1160         1/1     Running    0          5m19s
+kube-proxy-g4lg7                           1/1     Running    0          5m6s
+kube-scheduler-master1160                  1/1     Running    0          5m23s
+[root@master1160 ~]# kubectl get nodes
+NAME         STATUS   ROLES           AGE     VERSION
+master1160   Ready    control-plane   9m11s   v1.28.15
+worker1161   Ready    <none>          117s    v1.28.2
+[root@master1160 ~]# ^C
+[root@master1160 ~]# kubectl label node worker1161 node-role.kubernetes.io/worker=
+node/worker1161 labeled
+[root@master1160 ~]#
+[root@master1160 ~]#
+[root@master1160 ~]# kubectl get nodes
+NAME         STATUS   ROLES           AGE     VERSION
+master1160   Ready    control-plane   10m     v1.28.15
+worker1161   Ready    worker          3m36s   v1.28.2
+[root@master1160 ~]#
+[root@master1160 ~]#
+[root@master1160 ~]# kubectl get nodes
+NAME         STATUS   ROLES           AGE     VERSION
+master1160   Ready    control-plane   13m     v1.28.15
+worker1161   Ready    worker          6m16s   v1.28.2
+worker1162   Ready    <none>          34s     v1.28.2
+[root@master1160 ~]# kubectl get pods -n kube-system
+NAME                                       READY   STATUS    RESTARTS   AGE
+calico-kube-controllers-658d97c59c-v4kbl   1/1     Running   0          8m19s
+calico-node-79stt                          1/1     Running   0          6m18s
+calico-node-h66v5                          1/1     Running   0          8m19s
+calico-node-pw88m                          1/1     Running   0          36s
+coredns-5dd5756b68-5jkwf                   1/1     Running   0          13m
+coredns-5dd5756b68-qz47g                   1/1     Running   0          13m
+etcd-master1160                            1/1     Running   0          13m
+kube-apiserver-master1160                  1/1     Running   0          13m
+kube-controller-manager-master1160         1/1     Running   0          13m
+kube-proxy-74hvf                           1/1     Running   0          6m18s
+kube-proxy-fzmhz                           1/1     Running   0          36s
+kube-proxy-g4lg7                           1/1     Running   0          13m
+kube-scheduler-master1160                  1/1     Running   0          13m
+[root@master1160 ~]# kubectl label node worker1162 node-role.kubernetes.io/worker=
+node/worker1162 labeled
+[root@master1160 ~]#
+[root@master1160 ~]#
+[root@master1160 ~]# kubectl get nodes
+NAME         STATUS   ROLES           AGE     VERSION
+master1160   Ready    control-plane   14m     v1.28.15
+worker1161   Ready    worker          7m19s   v1.28.2
+worker1162   Ready    worker          97s     v1.28.2
+
