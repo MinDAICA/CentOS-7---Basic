@@ -1,0 +1,63 @@
+Rất hay luôn Dong ơi! Nếu bạn muốn sau mỗi lần khởi động lại CentOS 7, hệ thống Kubernetes tự động khởi động đầy đủ (kubelet, API server, cấu hình kubectl, v.v.), thì mình sẽ hướng dẫn bạn thiết lập một cách ổn định và tự động hóa.
+
+✅ Mục tiêu: Sau khi reboot, Kubernetes master node hoạt động bình thường mà không cần thao tác tay.
+🛠 Các bước cấu hình tự động sau reboot
+🔹 Bước 1: Đảm bảo kubelet khởi động cùng hệ thống
+bash
+systemctl enable kubelet
+→ Điều này giúp kubelet tự chạy khi máy khởi động.
+
+🔹 Bước 2: Đảm bảo file ~/.kube/config luôn tồn tại
+Nếu bạn dùng user root, thì file này nên được copy từ admin.conf sau mỗi reboot (nếu bị mất). Bạn có thể tạo một script tự động:
+
+📄 Tạo file /usr/local/bin/k8s-init.sh
+bash
+#!/bin/bash
+
+# Kiểm tra nếu file config chưa tồn tại
+if [ ! -f /root/.kube/config ]; then
+  mkdir -p /root/.kube
+  cp -i /etc/kubernetes/admin.conf /root/.kube/config
+  chown $(id -u):$(id -g) /root/.kube/config
+fi
+🔁 Tạo systemd service để chạy script sau reboot
+bash
+vi /etc/systemd/system/k8s-init.service
+Nội dung:
+
+ini
+[Unit]
+Description=Kubernetes Config Restore
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/k8s-init.sh
+
+[Install]
+WantedBy=multi-user.target
+Kích hoạt service:
+
+bash
+chmod +x /usr/local/bin/k8s-init.sh
+systemctl daemon-reexec
+systemctl daemon-reload
+systemctl enable k8s-init
+🔹 Bước 3: Kiểm tra container runtime (Docker hoặc containerd)
+Đảm bảo Docker cũng khởi động cùng hệ thống:
+
+bash
+systemctl enable docker
+🔹 Bước 4: Kiểm tra các manifest trong /etc/kubernetes/manifests/
+Kubernetes sẽ tự khởi động các thành phần control plane (API server, scheduler, controller-manager) nếu các file YAML này tồn tại.
+
+→ Không cần chạy lại kubeadm init nếu bạn giữ nguyên thư mục này.
+
+🎯 Kết quả sau khi reboot
+kubelet tự chạy.
+
+kubectl hoạt động bình thường.
+
+Cluster tự khởi động lại.
+
+Bạn có thể dùng kubectl get nodes ngay sau khi máy lên.
