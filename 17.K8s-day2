@@ -48,3 +48,129 @@ Sau khi pod chạy lại, truy cập:
 Code
 http://192.168.1.161:<NodePort>
 → Bạn sẽ thấy giao diện cài đặt WordPress, không còn lỗi thiếu extension PostgreSQL.
+
+
+<<<---------$$$---------->>>
+Mục tiêu: WordPress chạy với PostgreSQL trên Kubernetes
+✅ Những gì ta cần:
+Thành phần	Mô tả
+PostgreSQL	Cơ sở dữ liệu chính
+WordPress	CMS chạy trên Apache + PHP
+Plugin PG4WP	Plugin giúp WordPress kết nối PostgreSQL
+PersistentVolume	Lưu dữ liệu lâu dài
+Ingress (tuỳ chọn)	Truy cập bằng tên miền
+🧱 Bước 1: PostgreSQL đã chạy ổn định
+Bạn đã triển khai thành công pod PostgreSQL trên worker1162. Không cần thay đổi gì ở bước này.
+
+🛠️ Bước 2: Tạo image WordPress hỗ trợ PostgreSQL
+Vì image wordpress:php8.2-apache không hỗ trợ PostgreSQL, ta cần tạo image tùy chỉnh:
+
+📍 Trên máy tính của bạn (hoặc master node nếu có Docker), tạo file Dockerfile:
+
+Dockerfile
+FROM wordpress:php8.2-apache
+
+# Tải plugin PG4WP
+RUN curl -L https://github.com/kevinoid/postgresql-for-wordpress/archive/master.zip -o /tmp/pg4wp.zip \
+    && unzip /tmp/pg4wp.zip -d /tmp \
+    && mv /tmp/postgresql-for-wordpress-master/pg4wp /var/www/html/wp-content/pg4wp \
+    && rm -rf /tmp/*
+
+# Cấu hình plugin
+RUN cp /var/www/html/wp-content/pg4wp/db.php /var/www/html/wp-content/db.php
+📦 Build image:
+
+bash
+docker build -t wordpress-pg .
+📤 Push lên Docker Hub hoặc registry nội bộ:
+
+bash
+docker tag wordpress-pg yourdockerhub/wordpress-pg
+docker push yourdockerhub/wordpress-pg
+📄 Bước 3: Triển khai WordPress dùng image mới
+Tạo file wordpress-pg.yaml:
+
+yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+  namespace: wordpress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wordpress
+  template:
+    metadata:
+      labels:
+        app: wordpress
+    spec:
+      containers:
+      - name: wordpress
+        image: yourdockerhub/wordpress-pg
+        env:
+        - name: WORDPRESS_DB_HOST
+          value: postgres.wordpress.svc.cluster.local:5432
+        - name: WORDPRESS_DB_USER
+          value: wpuser
+        - name: WORDPRESS_DB_PASSWORD
+          value: wppassword
+        - name: WORDPRESS_DB_NAME
+          value: wordpress
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress
+  namespace: wordpress
+spec:
+  selector:
+    app: wordpress
+  ports:
+  - port: 80
+    targetPort: 80
+  type: NodePort
+📌 Thay yourdockerhub/wordpress-pg bằng tên image bạn đã push.
+
+🔍 Bước 4: Truy cập và cài đặt WordPress
+Sau khi apply file YAML:
+
+bash
+kubectl apply -f wordpress-pg.yaml
+Truy cập:
+
+Code
+http://192.168.1.161:<NodePort>
+✅ Bạn sẽ thấy giao diện cài đặt WordPress. Plugin PG4WP sẽ giúp WordPress kết nối PostgreSQL.
+
+📁 Bước 5: (Tuỳ chọn) Thêm lưu trữ dữ liệu
+Bạn nên cấu hình PersistentVolume để PostgreSQL không mất dữ liệu khi pod bị xoá. Mình có thể hướng dẫn tiếp phần này nếu bạn muốn.
+
+Bạn muốn mình giúp tạo image WordPress hỗ trợ PostgreSQL trực tiếp, hay bạn muốn mình tạo file YAML hoàn chỉnh để bạn copy dùng ngay? Mình làm liền luôn!
+
+cái trên đã làm có cần xóa không?
+Không cần xóa đâu Dong! 🎯 Những gì bạn đã triển khai (PostgreSQL và WordPress) đều đang hoạt động tốt — chỉ cần điều chỉnh lại WordPress để hỗ trợ PostgreSQL là đủ, không cần xóa toàn bộ.
+
+✅ Những gì bạn nên giữ lại:
+Thành phần	Giữ lại?	Lý do
+postgres.yaml	✅ Giữ	PostgreSQL đang chạy ổn định, không cần thay đổi
+wordpress.yaml	❌ Sửa hoặc thay thế	Image hiện tại không hỗ trợ PostgreSQL
+🛠️ Việc bạn cần làm tiếp:
+Tạo image WordPress có plugin PG4WP để hỗ trợ PostgreSQL
+
+Thay thế deployment WordPress hiện tại bằng bản mới
+
+✅ Không cần xóa PostgreSQL — chỉ cần đảm bảo WordPress kết nối đúng
+
+📌 Nếu bạn muốn làm sạch để triển khai lại WordPress
+Bạn có thể xóa deployment WordPress cũ:
+
+bash
+kubectl delete deployment wordpress -n wordpress
+kubectl delete svc wordpress -n wordpress
+Sau đó triển khai lại bằng file wordpress-pg.yaml dùng image đã tích hợp plugin PostgreSQL.
+
+Bạn muốn mình giúp tạo image WordPress có sẵn plugin PG4WP, hay bạn muốn mình gửi file YAML hoàn chỉnh để bạn dùng ngay? Mình làm liền luôn!
