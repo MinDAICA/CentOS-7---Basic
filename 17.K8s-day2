@@ -1,0 +1,50 @@
+Tuyệt vời Dong! Dưới đây là toàn bộ nội dung Dockerfile hoàn chỉnh để bạn copy và dùng ngay. Nó sẽ:
+
+Dùng image WordPress chuẩn có PHP 8.2 và Apache
+
+Cài thêm extension PostgreSQL cho PHP (pdo_pgsql, pgsql)
+
+Copy file db.php vào đúng vị trí
+
+Copy toàn bộ thư mục plugin PG4WP
+
+📄 Dockerfile hoàn chỉnh
+Dockerfile
+FROM wordpress:php8.2-apache
+
+# Cài extension PostgreSQL cho PHP
+RUN apt-get update && apt-get install -y \
+    php8.2-pgsql \
+    php8.2-pdo-pgsql \
+    && docker-php-ext-enable pgsql pdo_pgsql
+
+# Copy file db.php vào wp-content
+COPY postgresql-for-wordpress/pg4wp/db.php /var/www/html/wp-content/db.php
+
+# Copy toàn bộ thư mục plugin PG4WP
+COPY postgresql-for-wordpress/pg4wp /var/www/html/wp-content/plugins/pg4wp
+🔁 Các bước tiếp theo
+Build lại image:
+
+bash
+docker build -t wordpress-pg .
+Xoá pod WordPress hiện tại:
+
+bash
+kubectl delete pod -l app=wordpress -n wordpress
+Áp dụng lại wordpress.yaml:
+
+bash
+kubectl apply -f wordpress.yaml
+📌 Đảm bảo file wordpress.yaml có:
+
+yaml
+image: wordpress-pg
+imagePullPolicy: Never
+nodeName: master1160
+✅ Kiểm tra lại
+Sau khi pod chạy lại, truy cập:
+
+Code
+http://192.168.1.161:<NodePort>
+→ Bạn sẽ thấy giao diện cài đặt WordPress, không còn lỗi thiếu extension PostgreSQL.
