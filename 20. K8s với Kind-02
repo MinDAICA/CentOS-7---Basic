@@ -2,18 +2,13 @@ Dưới đây là hướng dẫn chi tiết, từng bước để tạo một c�
 
 Tổng quan
 Kind là gì: Kind chạy các “node” Kubernetes dưới dạng container Docker. Mỗi container tương ứng một node (control-plane hoặc worker).
-
 Ưu điểm: Nhanh, nhẹ, xóa/khởi tạo cluster tức thì, rất phù hợp học/lab, CI/CD.
-
 Giới hạn: Không phản ánh đầy đủ production (I/O, networking, storage), nhưng đủ để học kubectl, YAML, scheduling, service, ingress, v.v.
 
 Chuẩn bị trên CentOS 7
 Yêu cầu hệ thống: CPU 2+ cores, RAM 4–8 GB, ổ đĩa trống ~10 GB.
-
 Docker: Kind cần Docker. Trên CentOS 7, dùng Docker CE.
-
 User: Chạy Docker không cần sudo (tùy chọn), hoặc cứ dùng sudo.
-
 Cài Docker CE
 bash
 # 1) Bật repo Docker
