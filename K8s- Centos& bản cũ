@@ -176,3 +176,55 @@ bash
 👉 Bạn sẽ thấy service my-nginx được tạo, có thể expose ra ngoài bằng NodePort hoặc Ingress.
 
 Bạn muốn mình giúp deploy một app cụ thể bằng Helm không? Ví dụ như WordPress, Redis, PostgreSQL, hoặc một app của bạn?
+
+
+[root@localhost ~]# kubectl get svc
+NAME         TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+hello        NodePort       10.96.50.167    <none>        80:32404/TCP                 4m23s
+kubernetes   ClusterIP      10.96.0.1       <none>        443/TCP                      21m
+my-nginx     LoadBalancer   10.96.192.123   <pending>     80:31012/TCP,443:30400/TCP   0s
+
+Tuyệt vời Dong 🎯. Cluster Kind của bạn đang hoạt động rất tốt, và mình thấy bạn đã triển khai:
+
+✅ hello → kiểu NodePort, đã expose cổng 80 ra ngoài qua 32404
+✅ my-nginx → kiểu LoadBalancer, nhưng đang ở trạng thái EXTERNAL-IP: <pending>
+🔍 Vì sao LoadBalancer bị pending?
+Kind là một cluster chạy trong Docker, không có cloud provider như AWS, GCP, hay Azure → kiểu LoadBalancer sẽ không tự cấp IP được.
+👉 Vì vậy, EXTERNAL-IP sẽ luôn là <pending> trừ khi bạn cài thêm một LoadBalancer nội bộ như:
+
+✅ 1. MetalLB – cấp IP nội bộ cho dịch vụ kiểu LoadBalancer
+Cài MetalLB:
+bash
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.10/config/manifests/metallb-native.yaml
+Tạo cấu hình IP range:
+yaml
+            cat <<EOF | kubectl apply -f -
+            apiVersion: metallb.io/v1beta1
+            kind: IPAddressPool
+            metadata:
+              name: kind-pool
+              namespace: metallb-system
+            spec:
+              addresses:
+              - 172.18.255.1-172.18.255.250
+            ---
+            apiVersion: metallb.io/v1beta1
+            kind: L2Advertisement
+            metadata:
+              name: kind-advert
+              namespace: metallb-system
+            spec:
+              ipAddressPools:
+              - kind-pool
+            EOF
+👉 Sau đó, my-nginx sẽ được cấp IP thật từ dải 172.18.255.x và bạn có thể truy cập qua IP đó.
+✅ Hoặc dùng NodePort để truy cập ngay
+Bạn đã có:
+bash
+hello        NodePort       ...        80:32404/TCP
+→ Truy cập bằng IP máy host (VM hoặc máy thật):
+
+Code
+http://<host-ip>:32404
+Bạn muốn mình giúp cài MetalLB đầy đủ và test truy cập my-nginx qua IP thật không? Hay bạn muốn expose thêm app qua Ingress để dùng domain như hello.local?
+
