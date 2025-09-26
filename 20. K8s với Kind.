@@ -1,0 +1,191 @@
+Dưới đây là hướng dẫn chi tiết, từng bước để tạo một cụm Kubernetes nhiều node (1 control-plane + nhiều worker) bằng Kind (Kubernetes in Docker) trên một máy VM CentOS 7. Mình vừa giải thích rõ lý do, vừa đưa lệnh cụ thể để bạn chạy ngay.
+
+Tổng quan
+Kind là gì: Kind chạy các “node” Kubernetes dưới dạng container Docker. Mỗi container tương ứng một node (control-plane hoặc worker).
+
+Ưu điểm: Nhanh, nhẹ, xóa/khởi tạo cluster tức thì, rất phù hợp học/lab, CI/CD.
+
+Giới hạn: Không phản ánh đầy đủ production (I/O, networking, storage), nhưng đủ để học kubectl, YAML, scheduling, service, ingress, v.v.
+
+Chuẩn bị trên CentOS 7
+Yêu cầu hệ thống: CPU 2+ cores, RAM 4–8 GB, ổ đĩa trống ~10 GB.
+
+Docker: Kind cần Docker. Trên CentOS 7, dùng Docker CE.
+
+User: Chạy Docker không cần sudo (tùy chọn), hoặc cứ dùng sudo.
+
+Cài Docker CE
+bash
+# 1) Bật repo Docker
+sudo yum install -y yum-utils
+sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+# 2) Cài Docker
+sudo yum install -y docker-ce docker-ce-cli containerd.io
+
+# 3) Khởi động và bật tự động
+sudo systemctl enable --now docker
+
+# 4) (Tùy chọn) Cho phép user hiện tại dùng docker không cần sudo
+sudo usermod -aG docker $USER
+# Đăng xuất/đăng nhập lại, hoặc:
+newgrp docker
+Cấu hình cgroup driver cho kubelet (không bắt buộc với Kind)
+Kind dùng containerd bên trong node container, thường không cần chỉnh cgroup của Docker host. Nếu bạn định chạy thêm kubeadm ngoài Kind, hãy đồng bộ systemd:
+
+bash
+# Tạo/điều chỉnh /etc/docker/daemon.json
+sudo tee /etc/docker/daemon.json >/dev/null <<'EOF'
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": { "max-size": "100m" },
+  "storage-driver": "overlay2"
+}
+EOF
+
+sudo systemctl restart docker
+Cài kind và kubectl
+Cài Kind (binary)
+bash
+# Tải bản mới nhất (x86_64)
+curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
+chmod +x ./kind
+sudo mv ./kind /usr/local/bin/kind
+kind version
+Cài kubectl
+bash
+# Tải kubectl stable (x86_64)
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/kubectl
+kubectl version --client
+Tạo cấu hình cluster nhiều node
+Ý tưởng: Khai báo 1 control-plane và N worker trong file YAML cho Kind. Có thể thêm port mapping, cấu hình mạng pod CIDR, v.v.
+
+CNI: Kind mặc định dùng kindnet, đủ cho pod-to-pod và service trong cluster.
+
+Ví dụ: 1 control-plane + 3 worker
+yaml
+# kind-config.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  # CIDR cho pod; dùng mặc định của kind (có thể bỏ dòng này)
+  disableDefaultCNI: false
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Map cổng host -> node control-plane để test dịch vụ NodePort/Ingress
+      - containerPort: 30080
+        hostPort: 30080
+        protocol: TCP
+      - containerPort: 30443
+        hostPort: 30443
+        protocol: TCP
+  - role: worker
+  - role: worker
+  - role: worker
+extraPortMappings: Cho phép truy cập dịch vụ từ host qua cổng cụ thể (hữu ích khi test NodePort/Ingress).
+
+disableDefaultCNI: Để false để dùng kindnet mặc định.
+
+Khởi tạo cluster và kiểm tra
+Tạo cluster
+bash
+kind create cluster --name lab --config kind-config.yaml
+Giải thích: Kind sẽ kéo image node, tạo container tương ứng cho control-plane và worker, thiết lập CNI, apiserver, etcd, v.v.
+
+Kiểm tra node và component
+bash
+# Liệt kê node
+kubectl get nodes -o wide
+
+# Kiểm tra pod hệ thống
+kubectl get pods -A
+
+# Kiểm tra trạng thái kube-system
+kubectl -n kube-system get deployments,ds,svc
+Kỳ vọng: Thấy 4 node (1 control-plane, 3 worker), tất cả ở trạng thái Ready sau 1–3 phút.
+
+Cài ingress controller (tùy chọn, để test HTTP/HTTPS)
+Mục tiêu: Expose service ra ngoài bằng Ingress. Trên Kind, dùng ingress-nginx là phổ biến.
+
+Cài ingress-nginx
+bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+
+# Đợi controller sẵn sàng
+kubectl -n ingress-nginx get pods -w
+Truy cập từ host: Map cổng ở control-plane như config (ví dụ 30080/30443), rồi tạo Ingress dùng các cổng đó.
+
+Triển khai ứng dụng mẫu và kiểm thử
+Tạo một Deployment + Service NodePort
+bash
+kubectl create deployment echo --image=ealen/echo-server
+kubectl expose deployment echo --type=NodePort --port=80
+
+# Xem cổng NodePort (ví dụ 3xxxx)
+kubectl get svc echo -o wide
+Truy cập: Vì ta đã map hostPort 30080 → containerPort 30080, bạn có thể tạo service NodePort 30080 để truy cập:
+
+bash
+kubectl patch svc echo -p '{"spec": {"type":"NodePort","ports":[{"port":80,"targetPort":80,"nodePort":30080}]}}'
+curl http://127.0.0.1:30080
+Hoặc tạo Ingress (nếu dùng ingress-nginx)
+yaml
+# echo-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: echo
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: echo.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: echo
+                port:
+                  number: 80
+bash
+kubectl apply -f echo-ingress.yaml
+# Thêm entry /etc/hosts để trỏ echo.local về localhost (tuỳ chọn)
+echo "127.0.0.1 echo.local" | sudo tee -a /etc/hosts
+curl -H "Host: echo.local" http://127.0.0.1:30080
+Lưu ý và mẹo quan trọng
+Tài nguyên: Nếu node không lên Ready, tăng RAM VM (ít nhất 4 GB, khuyến nghị 6–8 GB cho 4 node Kind).
+
+Image proxy: CentOS 7 đôi khi gặp vấn đề TLS khi kéo image. Kiểm tra proxy/cert nếu kéo image thất bại.
+
+DNS: Coredns cần thời gian để đẩy Ready; đừng lo nếu mất 1–2 phút đầu.
+
+Lưu kubeconfig: Kind tự thêm context vào ~/.kube/config với tên kind-<cluster>. Kiểm tra:
+
+bash
+kubectl config get-contexts
+kubectl config use-context kind-lab
+Persistent storage: Kind phù hợp test, nhưng volume và I/O không giống thật; đừng dùng cho benchmark lưu trữ.
+
+HA control-plane: Có thể khai báo nhiều control-plane node trong config để giả lập HA (Kind hỗ trợ nhiều control-plane, nhưng chỉ để học/lab).
+
+Xóa cluster khi không cần nữa
+bash
+kind delete cluster --name lab
+docker ps -a   # kiểm tra container còn sót
+docker system prune -f   # (tùy chọn) dọn dẹp image/container không dùng
+Tóm tắt nhanh
+Cài Docker → Cài Kind + kubectl → Tạo file kind-config.yaml → kind create cluster → kubectl verify.
+
+Thêm ingress/nginx nếu cần → Triển khai app → Expose bằng NodePort hoặc Ingress.
+
+Khi xong việc → kind delete cluster.
+
+Bạn muốn mình điều chỉnh cấu hình theo tài nguyên máy của bạn (RAM/CPU, số worker mong muốn, port mapping cụ thể) không? Chỉ cần nói thông số, mình sẽ viết sẵn file config tối ưu cho VM của bạn.24
