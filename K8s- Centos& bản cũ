@@ -148,3 +148,31 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/cont
 bash
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
 Bạn muốn mình giúp viết một script tự động deploy app + expose + test luôn không? Hay bạn muốn triển khai Helm chart, Ingress, hoặc CI/CD tiếp theo?
+
+Kiểm tra Helm hoạt động
+Chạy:
+bash
+helm version
+→ Kết quả sẽ là:
+Code
+version.BuildInfo{Version:"v3.19.0", ...}
+
+⚠️ Lưu ý nhỏ
+Dòng cảnh báo:
+Code
+[WARNING] Could not find git. It is required for plugin installation.
+→ Không ảnh hưởng đến việc dùng Helm để cài chart. Chỉ khi bạn muốn dùng Helm plugin thì mới cần cài git.
+Nếu muốn cài git:
+bash
+    sudo yum install -y git
+
+🚀 Gợi ý tiếp theo: Cài thử Helm chart
+Ví dụ: cài NGINX bằng Helm
+bash
+    helm repo add bitnami https://charts.bitnami.com/bitnami
+    helm repo update
+    helm install my-nginx bitnami/nginx
+    kubectl get svc
+👉 Bạn sẽ thấy service my-nginx được tạo, có thể expose ra ngoài bằng NodePort hoặc Ingress.
+
+Bạn muốn mình giúp deploy một app cụ thể bằng Helm không? Ví dụ như WordPress, Redis, PostgreSQL, hoặc một app của bạn?
