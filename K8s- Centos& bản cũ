@@ -1,0 +1,150 @@
+Hiểu rồi Dong 👍. Vấn đề của bạn là: ELRepo không giữ lại các bản kernel-ml/lts cũ trong thư mục chính, nên khi bạn wget theo tên cụ thể (5.15.152, 6.10.5…) thì sẽ bị 404 Not Found.
+
+👉 Cách xử lý triệt để là dùng mirror archive của ELRepo, nơi họ lưu lại tất cả các bản kernel cũ, hoặc cài trực tiếp qua yum từ repo elrepo-kernel thay vì wget thủ công.
+
+🔧 Giải pháp 1: Dùng mirror archive (ổn định nhất)
+ELRepo có mirror archive ở đây: 👉 https://mirrors.coreix.net/elrepo-archive-archive/kernel/el7/x86_64/RPMS/
+Tại đó bạn sẽ thấy đầy đủ các gói .rpm cho kernel-ml và kernel-lt.
+Ví dụ, để cài bản kernel-lt 5.4.x LTS (ổn định, phù hợp CentOS 7):
+
+bash
+cd /tmp
+wget https://mirrors.coreix.net/elrepo-archive-archive/kernel/el7/x86_64/RPMS/kernel-lt-5.4.278-1.el7.elrepo.x86_64.rpm
+wget https://mirrors.coreix.net/elrepo-archive-archive/kernel/el7/x86_64/RPMS/kernel-lt-devel-5.4.278-1.el7.elrepo.x86_64.rpm
+wget https://mirrors.coreix.net/elrepo-archive-archive/kernel/el7/x86_64/RPMS/kernel-lt-headers-5.4.278-1.el7.elrepo.x86_64.rpm
+
+sudo rpm -ivh kernel-lt-*.rpm
+Dùng -i để cài song song, giữ lại kernel cũ phòng khi boot lỗi.
+
+🔧 Giải pháp 2: Dùng yum với repo elrepo-kernel
+Nếu mạng của bạn cho phép, bạn có thể thử lại với yum (nhưng cần bypass mirrorlist):
+
+bash
+sudo yum --disablerepo="*" --enablerepo="elrepo-kernel" list available | grep kernel
+sudo yum --enablerepo=elrepo-kernel install kernel-lt
+🔧 Sau khi cài xong
+Tạo lại grub config:
+
+bash
+sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+Đặt kernel mới làm mặc định:
+
+bash
+sudo grub2-set-default 0
+Reboot:
+
+bash
+sudo reboot
+Kiểm tra:
+
+bash
+uname -sr
+👉 Nếu thấy Linux 5.4.x → thành công 🎉
+
+✅ Kết luận
+Bạn bị 404 vì gọi thẳng bản kernel đã bị gỡ.
+Cách triệt để: dùng mirror archive (link ở trên) để tải đúng bản .rpm.
+Khuyến nghị: dùng kernel-lt 5.4.x cho CentOS 7 (ổn định, hỗ trợ lâu dài).
+👉 Bạn có muốn mình chọn luôn 3 link chính xác mới nhất của kernel-lt (5.4.x) từ mirror archive để bạn copy‑paste chạy ngay không?
+------
+Chuẩn rồi Dong 👍. Gói kernel-lt-devel yêu cầu gói perl vì nó cần Perl để biên dịch module hoặc xử lý script trong quá trình cài đặt. Đây là lỗi phụ thuộc đơn giản, xử lý rất nhanh.
+
+✅ Cách khắc phục
+Chỉ cần cài gói perl trước khi cài kernel:
+
+bash
+sudo yum install -y perl
+Sau đó chạy lại lệnh cài kernel:
+
+bash
+sudo rpm -ivh kernel-lt-*.rpm
+🔁 Nếu bạn đã tải kernel-lt bản 5.4.278
+Thì sau khi cài xong, tiếp tục:
+
+bash
+sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+sudo grub2-set-default 0
+sudo reboot
+Sau khi máy khởi động lại:
+
+bash
+uname -sr
+👉 Nếu thấy Linux 5.4.278 → bạn đã nâng kernel thành công 🎉
+
+
+Quá tuyệt vời Dong ơi! Cluster Kind đã khởi tạo thành công trên CentOS 7 với image v1.24.15 — chứng tỏ phương án dùng bản Kubernetes nhẹ hơn đã xử lý triệt để vấn đề cgroup v2 rồi đó.
+
+✅ Giờ bạn có thể bắt đầu làm gì?
+🔍 Kiểm tra cluster hoạt động
+    bash
+    kubectl get nodes
+    kubectl get pods -A
+🚀 Triển khai thử một app
+    bash
+    kubectl create deployment hello --image=nginx
+    kubectl expose deployment hello --port=80 --type=NodePort
+    kubectl get svc
+  📦 Cài thêm tiện ích
+    Ingress Controller
+    Metrics Server
+    Helm
+    Dashboard
+
+🧠 Gợi ý tiếp theo
+Bạn muốn:
+Deploy thử Helm chart?
+Cài Ingress để expose app ra ngoài?
+Tích hợp CI/CD như GitHub Actions hoặc Jenkins?
+Viết script tự động khởi tạo cluster và deploy app?
+Mình có thể giúp bạn từng bước. Giờ cluster đã sẵn sàng, bạn muốn làm gì tiếp theo?
+
+---
+[root@localhost ~]# kubectl get nodes 
+
+
+
+[root@localhost ~]# kubectl get nodes
+NAME                 STATUS   ROLES           AGE     VERSION
+demo-control-plane   Ready    control-plane   3m38s   v1.24.15
+
+NAMESPACE            NAME                                         READY   STATUS    RESTARTS   AGE
+kube-system          coredns-57575c5f89-kd7hx                     1/1     Running   0          3m25s
+kube-system          coredns-57575c5f89-nmd2l                     1/1     Running   0          3m25s
+kube-system          etcd-demo-control-plane                      1/1     Running   0          3m40s
+kube-system          kindnet-5czr4                                1/1     Running   0          3m25s
+kube-system          kube-apiserver-demo-control-plane            1/1     Running   0          3m40s
+kube-system          kube-controller-manager-demo-control-plane   1/1     Running   0          3m40s
+kube-system          kube-proxy-m4hhz                             1/1     Running   0          3m25s
+kube-system          kube-scheduler-demo-control-plane            1/1     Running   0          3m40s
+local-path-storage   local-path-provisioner-c49b7b56f-2flxc       1/1     Running   0          3m25s
+
+Quá đẹp luôn Dong ơi 🎉. Cluster Kind của bạn đã lên hoàn chỉnh, mọi thành phần control-plane và CNI đều đang ở trạng thái Running. Đây là dấu hiệu của một cluster ổn định, sẵn sàng để triển khai ứng dụng.
+
+✅ Tình trạng hiện tại
+Thành phần	Trạng thái
+Node	demo-control-plane → Ready
+CoreDNS	2 pods → Running
+etcd, kube-apiserver, scheduler, controller-manager	Tất cả Running
+kindnet (CNI)	Running
+kube-proxy	Running
+StorageClass (local-path)	Running
+👉 Bạn đang có một single-node Kubernetes cluster hoàn chỉnh, có DNS, mạng, storage, và sẵn sàng để deploy app.
+
+🚀 Gợi ý tiếp theo
+Bạn có thể thử:
+
+1. Triển khai ứng dụng mẫu
+bash
+kubectl create deployment hello --image=nginx
+kubectl expose deployment hello --port=80 --type=NodePort
+kubectl get svc
+2. Cài Helm (nếu bạn dùng chart)
+bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+3. Cài Ingress Controller
+bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.2.1/deploy/static/provider/kind/deploy.yaml
+4. Cài Dashboard
+bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+Bạn muốn mình giúp viết một script tự động deploy app + expose + test luôn không? Hay bạn muốn triển khai Helm chart, Ingress, hoặc CI/CD tiếp theo?
